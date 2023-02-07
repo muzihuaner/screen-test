@@ -1,0 +1,902 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="keywords" content="在线屏幕测试,坏点检测,坏点测试软件,坏点测试图片,坏点修复,显示器坏点,屏幕坏点,测试屏幕坏点,投影仪测试,DisplayX,屏幕保护,lcdtest" />
+<meta name="description" content="免费在线屏幕测试工具，汇集屏幕测试环节，对您的显示设备做一次全面的体检。" />
+<title>在线屏幕测试网站 - 屏幕检测工具 - 显示器检测软件-手机屏幕测试图片</title>
+<script type="text/javascript" src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.js"></script>
+<script type="text/javascript">
+(function (factory) {
+    if ( typeof define === 'function' && define.amd ) {
+        // AMD. Register as an anonymous module.
+        define(['jquery'], factory);
+    } else if (typeof exports === 'object') {
+        // Node/CommonJS style for Browserify
+        module.exports = factory;
+    } else {
+        // Browser globals
+        factory(jQuery);
+    }
+}(function ($) {
+
+    var toFix = ['wheel', 'mousewheel', 'DOMMouseScroll', 'MozMousePixelScroll'];
+    var toBind = 'onwheel' in document || document.documentMode >= 9 ? ['wheel'] : ['mousewheel', 'DomMouseScroll', 'MozMousePixelScroll'];
+    var lowestDelta, lowestDeltaXY;
+
+    if ( $.event.fixHooks ) {
+        for ( var i = toFix.length; i; ) {
+            $.event.fixHooks[ toFix[--i] ] = $.event.mouseHooks;
+        }
+    }
+
+    $.event.special.mousewheel = {
+        setup: function() {
+            if ( this.addEventListener ) {
+                for ( var i = toBind.length; i; ) {
+                    this.addEventListener( toBind[--i], handler, false );
+                }
+            } else {
+                this.onmousewheel = handler;
+            }
+        },
+
+        teardown: function() {
+            if ( this.removeEventListener ) {
+                for ( var i = toBind.length; i; ) {
+                    this.removeEventListener( toBind[--i], handler, false );
+                }
+            } else {
+                this.onmousewheel = null;
+            }
+        }
+    };
+
+    $.fn.extend({
+        mousewheel: function(fn) {
+            return fn ? this.bind("mousewheel", fn) : this.trigger("mousewheel");
+        },
+
+        unmousewheel: function(fn) {
+            return this.unbind("mousewheel", fn);
+        }
+    });
+
+
+    function handler(event) {
+        var orgEvent = event || window.event,
+            args = [].slice.call(arguments, 1),
+            delta = 0,
+            deltaX = 0,
+            deltaY = 0,
+            absDelta = 0,
+            absDeltaXY = 0,
+            fn;
+        event = $.event.fix(orgEvent);
+        event.type = "mousewheel";
+
+        // Old school scrollwheel delta
+        if ( orgEvent.wheelDelta ) { delta = orgEvent.wheelDelta; }
+        if ( orgEvent.detail )     { delta = orgEvent.detail * -1; }
+
+        // New school wheel delta (wheel event)
+        if ( orgEvent.deltaY ) {
+            deltaY = orgEvent.deltaY * -1;
+            delta  = deltaY;
+        }
+        if ( orgEvent.deltaX ) {
+            deltaX = orgEvent.deltaX;
+            delta  = deltaX * -1;
+        }
+
+        // Webkit
+        if ( orgEvent.wheelDeltaY !== undefined ) { deltaY = orgEvent.wheelDeltaY; }
+        if ( orgEvent.wheelDeltaX !== undefined ) { deltaX = orgEvent.wheelDeltaX * -1; }
+
+        // Look for lowest delta to normalize the delta values
+        absDelta = Math.abs(delta);
+        if ( !lowestDelta || absDelta < lowestDelta ) { lowestDelta = absDelta; }
+        absDeltaXY = Math.max(Math.abs(deltaY), Math.abs(deltaX));
+        if ( !lowestDeltaXY || absDeltaXY < lowestDeltaXY ) { lowestDeltaXY = absDeltaXY; }
+
+        // Get a whole value for the deltas
+        fn = delta > 0 ? 'floor' : 'ceil';
+        delta  = Math[fn](delta / lowestDelta);
+        deltaX = Math[fn](deltaX / lowestDeltaXY);
+        deltaY = Math[fn](deltaY / lowestDeltaXY);
+
+        // Add event and delta to the front of the arguments
+        args.unshift(event, delta, deltaX, deltaY);
+
+        return ($.event.dispatch || $.event.handle).apply(this, args);
+    }
+
+}));
+
+</script>
+<script type="text/javascript">
+(function() {
+
+/**
+ * Sets or gets the fullscreen state.
+ * 
+ * @param {boolean=} state
+ *            True to enable fullscreen mode, false to disable it. If not
+ *            specified then the current fullscreen state is returned.
+ * @return {boolean|Element|jQuery|null}
+ *            When querying the fullscreen state then the current fullscreen
+ *            element (or true if browser doesn't support it) is returned
+ *            when browser is currently in full screen mode. False is returned
+ *            if browser is not in full screen mode. Null is returned if 
+ *            browser doesn't support fullscreen mode at all. When setting 
+ *            the fullscreen state then the current jQuery selection is 
+ *            returned for chaining.
+ * @this {jQuery}
+ */
+function fullScreen(state)
+{
+    var e, func, doc;
+    
+    // Do nothing when nothing was selected
+    if (!this.length) return this;
+    
+    // We only use the first selected element because it doesn't make sense
+    // to fullscreen multiple elements.
+    e = (/** @type {Element} */ this[0]);
+    
+    // Find the real element and the document (Depends on whether the
+    // document itself or a HTML element was selected)
+    if (e.ownerDocument)
+    {
+        doc = e.ownerDocument;
+    }
+    else
+    {
+        doc = e;
+        e = doc.documentElement;
+    }
+    
+    // When no state was specified then return the current state.
+    if (state == null)
+    {
+        // When fullscreen mode is not supported then return null
+        if (!((/** @type {?Function} */ doc["exitFullscreen"])
+            || (/** @type {?Function} */ doc["webkitExitFullscreen"])
+            || (/** @type {?Function} */ doc["webkitCancelFullScreen"])
+            || (/** @type {?Function} */ doc["msExitFullscreen"])
+            || (/** @type {?Function} */ doc["mozCancelFullScreen"])))
+        {
+            return null;
+        }
+        
+        // Check fullscreen state
+        state = !!doc["fullscreenElement"]
+            || !!doc["msFullscreenElement"]
+            || !!doc["webkitIsFullScreen"]
+            || !!doc["mozFullScreen"];
+        if (!state) return state;
+        
+        // Return current fullscreen element or "true" if browser doesn't
+        // support this
+        return (/** @type {?Element} */ doc["fullscreenElement"])
+            || (/** @type {?Element} */ doc["webkitFullscreenElement"])
+            || (/** @type {?Element} */ doc["webkitCurrentFullScreenElement"])
+            || (/** @type {?Element} */ doc["msFullscreenElement"])
+            || (/** @type {?Element} */ doc["mozFullScreenElement"])
+            || state;
+    }
+    
+    // When state was specified then enter or exit fullscreen mode.
+    if (state)
+    {
+        // Enter fullscreen
+        func = (/** @type {?Function} */ e["requestFullscreen"])
+            || (/** @type {?Function} */ e["webkitRequestFullscreen"])
+            || (/** @type {?Function} */ e["webkitRequestFullScreen"])
+            || (/** @type {?Function} */ e["msRequestFullscreen"])
+            || (/** @type {?Function} */ e["mozRequestFullScreen"]);
+        if (func) 
+        {
+            func.call(e);
+        }
+        return this;
+    }
+    else
+    {
+        // Exit fullscreen
+        func = (/** @type {?Function} */ doc["exitFullscreen"])
+            || (/** @type {?Function} */ doc["webkitExitFullscreen"])
+            || (/** @type {?Function} */ doc["webkitCancelFullScreen"])
+            || (/** @type {?Function} */ doc["msExitFullscreen"])
+            || (/** @type {?Function} */ doc["mozCancelFullScreen"]);
+        if (func) func.call(doc);
+        return this;
+    }
+}
+
+/**
+ * Toggles the fullscreen mode.
+ * 
+ * @return {!jQuery}
+ *            The jQuery selection for chaining.
+ * @this {jQuery}
+ */
+function toggleFullScreen()
+{
+    return (/** @type {!jQuery} */ fullScreen.call(this, 
+        !fullScreen.call(this)));
+}
+
+/**
+ * Handles the browser-specific fullscreenchange event and triggers
+ * a jquery event for it.
+ *
+ * @param {?Event} event
+ *            The fullscreenchange event.
+ */
+function fullScreenChangeHandler(event)
+{
+    jQuery(document).trigger(new jQuery.Event("fullscreenchange"));
+}
+
+/**
+ * Handles the browser-specific fullscreenerror event and triggers
+ * a jquery event for it.
+ *
+ * @param {?Event} event
+ *            The fullscreenerror event.
+ */
+function fullScreenErrorHandler(event)
+{
+    jQuery(document).trigger(new jQuery.Event("fullscreenerror"));
+}
+
+/**
+ * Installs the fullscreenchange event handler.
+ */
+function installFullScreenHandlers()
+{
+    var e, change, error;
+    
+    // Determine event name
+    e = document;
+    if (e["webkitCancelFullScreen"])
+    {
+        change = "webkitfullscreenchange";
+        error = "webkitfullscreenerror";
+    }
+    else if (e["msExitFullscreen"])
+    {
+        change = "MSFullscreenChange";
+        error = "MSFullscreenError";
+    }
+    else if (e["mozCancelFullScreen"])
+    {
+        change = "mozfullscreenchange";
+        error = "mozfullscreenerror";
+    }
+    else 
+    {
+        change = "fullscreenchange";
+        error = "fullscreenerror";
+    }
+
+    // Install the event handlers
+    jQuery(document).bind(change, fullScreenChangeHandler);
+    jQuery(document).bind(error, fullScreenErrorHandler);
+}
+
+jQuery.fn["fullScreen"] = fullScreen;
+jQuery.fn["toggleFullScreen"] = toggleFullScreen;
+installFullScreenHandlers();
+
+})();
+
+</script>
+<script type="text/javascript">
+$(document).ready(function(){
+	
+	$("#resolution").html(screen.width+"x"+screen.height+"x"+screen.colorDepth);
+	$("#bodysize").html($("#welcome").width()+"x"+$("#welcome").height());
+
+	slide = new Array();
+	current_slide = 0;
+	var lock = 1;
+			
+	$("#main li").each(function(i){
+		var id = $(this).attr("id");
+		var title = $(this).data("title");
+		var size = slide.push({
+			"id" : id,
+			"title" : title,
+			"description" : $(this).data("desc"),
+		});
+		$("#control_buttons").append(
+			$("<a />").attr("id", "btn-"+id).text(title).click(function(){go(size-1);})
+		);
+	});
+	
+	var adjust_control = function () {
+		var $btn = $("#btn-"+slide[current_slide].id);
+		var current_left = $btn.offset().left;
+		var target_left  = ($("#container").width()-$btn.width())/2;
+		var $wrapper = $("#control_buttons");
+		var pos = $wrapper.position();
+		pos.left += target_left-current_left;
+		$wrapper.css("left", pos.left);
+	}
+		
+	go = function(i) {
+		if (slide.length>0 && i>=0 && i<slide.length) {
+            // location.hash = slide[i].id;
+			current_slide = i;
+			$("#control .top .title").text(slide[i].title);
+			$("#control .top .description").text(slide[i].description);
+            $(".slide").addClass("hide");
+            $("#" + slide[current_slide].id).removeClass("hide");
+		}
+		setTimeout(function(){lock=(i==0);}, 100);
+		adjust_control();
+	}
+	
+	$("#main").bind("mousewheel", function(e, d) {
+		if (lock) return;
+		if (d>0) { // wheel up
+			go(current_slide-1);
+		} else { // wheel down
+			go(current_slide+1);
+		}
+	}).bind("click", function(e) {
+		if (lock) return;
+		if (current_slide + 1 == slide.length) {
+			$(document).fullScreen(false);
+			go(0);
+		} else {
+			go(current_slide+1);
+        }
+	});
+	
+	$(document).keyup(function(e) {
+		if (lock) return;
+		switch (e.keyCode) {
+			case 37: // arrow left
+				go(current_slide-1); break;
+			case 39: // arror right
+			case 13: // enter
+			case 32: // space
+				go(current_slide+1); break;
+			case 27: // esc
+				$(document).fullScreen(false);
+				go(0);
+		}
+	});
+	
+	var mouse_in_control_panel = 0;
+	var last_main_mousemove = 0;
+	var control_panel_daemon = 0;
+	
+	$("#main").bind("mousemove", function () {
+		if (slide[current_slide].id.substring(0,5) == "test-") {
+			last_main_mousemove = $.now();
+			$("#control").removeClass("control_hide").addClass("control_show");
+			if (control_panel_daemon == 0) {
+				control_panel_daemon = setInterval(function(){
+					if (!mouse_in_control_panel && $.now()-last_main_mousemove > 2000) {
+						$("#control").removeClass("control_show").addClass("control_hide");
+						clearInterval(control_panel_daemon);
+						control_panel_daemon = 0;
+					}
+				}, 200);
+			}
+		}
+	});
+
+	$("#control").mouseenter(function(){
+		mouse_in_control_panel = 1;
+	}).mouseleave(function(){
+		mouse_in_control_panel = 0;
+	});
+
+	var last_resize = 0;
+	var resolution_tips_daemon = 0;
+	$(window).resize(function(e) {
+		$("#resolution").html(screen.width+"x"+screen.height+"x"+screen.colorDepth);
+		$("#bodysize").html($("#welcome").width()+"x"+$("#welcome").height());
+		$("#resolution_tips").text($("#body").width()+"x"+$("#container").height()).show();
+		last_resize = $.now();
+		if (resolution_tips_daemon == 0) {
+			resolution_tips_daemon = setInterval(function(){
+				if ($.now()-last_resize > 1000) {
+					$("#resolution_tips").fadeOut();
+					clearInterval(resolution_tips_daemon);
+					resolution_tips_daemon = 0;
+				}
+			}, 200);
+		}
+		adjust_control();
+	});	
+
+	$("#start").click(function(){
+		$(document).fullScreen(true);
+		go(1);
+	});
+
+	$("#stop").click(function(){
+		$(document).fullScreen(false);
+		go(0);
+	});
+
+	go(0);
+	
+});
+
+
+
+</script>
+
+<style type="text/css">
+body, ul, li {
+    margin: 0;
+    padding: 0;
+}
+
+a { text-decoration: none;}
+
+#container {
+    left: 0; right: 0; top: 0;  bottom: 0;
+    position: fixed;
+    overflow: hidden;
+    min-width: 500px;
+}
+#control .panel {
+    position: absolute;
+    width: 100%;
+    background-color: rgba(64, 64, 64, 0.5);
+    z-index: 2;
+    overflow: hidden;
+    transition: all 1s ease-out;
+}
+
+.control_hide .top { top: -40px; }
+.control_show .top { top: 0;}
+#control .top { height: 40px; color: #FFF; }
+#control .top .title {
+    font-family: simhei;
+    font-size: 24px;
+    line-height: 40px;
+    margin: 0 20px;
+}
+#control .top .description { font-size: 12px; }
+#control .top .close {
+    background: url(img/control-close.png);
+    width: 20px;
+    height: 20px;
+    right: 20px;
+    top: 10px;
+    position: absolute;
+    cursor: pointer;
+}
+
+.control_show .bottom { bottom: 0;}
+.control_hide .bottom { bottom: -80px; }
+#control .bottom { height: 80px; }
+#control .bottom .wrapper {
+    width: 10000px;
+    position: relative;
+    transition: all 1s ease-out;
+}
+#control .bottom .wrapper a {
+    border: 1px solid #FFF;
+    float: left;
+    margin: 10px 0 0 5px;
+    display: block;
+    width: 150px;
+    color: #FFF;
+    height: 60px;
+    cursor: pointer;
+    text-align: center;
+    vertical-align: bottom;
+    border-radius: 3px;
+    background-color: rgba(0,0,0,0.5);
+    line-height: 60px;
+}
+#control .bottom .triangle {
+    position: absolute;
+    border-color: transparent transparent #FFF;
+    border-style: solid;
+    border-width: 0 50px 10px;
+    height: 0;
+    width: 0;
+    left: 50%;
+    margin: 0 0 0 -50px
+}
+
+
+.slide {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    list-style:none;
+    z-index: 0;
+}
+.hide { display: none; }
+
+#main { width: 100%; height: 100%; position: relative; }    
+
+#preloader {
+    background:
+        url("img/horizontal-line-1px.gif"),
+        url("img/horizontal-line-2px.gif"),
+        url("img/vertical-line-1px.gif"),
+        url("img/vertical-line-2px.gif"),
+        url("img/dots-1px.gif"),
+        url("img/dots-2px.gif"),
+        url("img/cross-1px.gif"),
+        url("img/cross-2px.gif"),
+        url("img/boxes-5px.png"),
+        url("img/white-grid-45px.png"),
+        url("img/convergence-45px.png"),
+        url("img/breathing-block.gif");
+    width: 0;
+    height: 0;
+    display: inline-block;
+}
+
+#test-solid-red { background-color: #F00; }
+#test-solid-green { background-color: #0F0; }
+#test-solid-blue { background-color: #00F; }
+#test-solid-yellow { background-color: #FF0; }
+#test-solid-cyan{ background-color: #0FF; }
+#test-solid-magenta { background-color: #F0F; }
+#test-solid-white{ background-color: #FFF; }
+#test-solid-black { background-color: #000; }
+
+#test-horizontal-line-1px { background: #000 url("img/horizontal-line-1px.gif") repeat center center; }
+#test-horizontal-line-2px { background: #000 url("img/horizontal-line-2px.gif") repeat center center; }
+#test-vertical-line-1px { background: #000 url("img/vertical-line-1px.gif") repeat center center; }
+#test-vertical-line-2px { background: #000 url("img/vertical-line-2px.gif") repeat center center; }
+#test-dots-1px { background: #000 url("img/dots-1px.gif") repeat center center; }
+#test-dots-2px { background: #000 url("img/dots-2px.gif") repeat center center; }
+#test-cross-1px { background: #000 url("img/cross-1px.gif") repeat center center; }
+#test-cross-2px { background: #000 url("img/cross-2px.gif") repeat center center; }
+
+#test-pattern {
+    background-color: #000;
+    background: url("img/boxes-5px.png") no-repeat top left,
+    url("img/boxes-5px.png") no-repeat top right,
+    url("img/boxes-5px.png") no-repeat bottom left,
+    url("img/boxes-5px.png") no-repeat bottom right,
+    url("img/boxes-5px.png") no-repeat center center #000;
+}
+
+#test-white-grid { background: #000 url("img/white-grid-45px.png") repeat center center; }
+#test-convergence { background: #000 url("img/convergence-45px.png") repeat center center; }
+
+#test-contrast-white { background-color: #FFF; color: #000; }
+#test-contrast-black { background-color: #000; color: #FFF; }
+
+.test-contrast table {
+    border-collapse:collapse;
+    position: relative;
+    left: 10%;
+    top: 10%;
+    height: 80%;
+    width: 80%;
+    text-align: center;
+    border-spacing: 0;
+}
+.test-contrast table td { width: 10%; padding: 0; }
+.test-contrast table .color td { height:22%; }
+.test-contrast table .ruler td { height:2.2%; border: 1px #808080; border-style: none solid; }
+.test-contrast i { font-size: 10px; font-style:normal; }
+
+#test-saturation  img{ width: 100%; height: 100%; }
+
+#test-stability  table {
+    border: 2px solid #FFF;
+    height: 100%; width: 100%;
+    border-spacing: 0;
+}
+
+#test-stability  table td {
+    border: 6px solid #000;
+    background: #000 url("img/breathing-block.gif") repeat center center;
+}
+
+.test-gradient  img{ width: 100%; height: 100%; }
+#test-gradient-red { background-color: #F00; }
+#test-gradient-green { background-color: #0F0; }
+#test-gradient-blue { background-color: #00F; }
+#test-gradient-white { background-color: #FFF; }
+
+#test-last { background-color: #000; text-align: center; color: #FFF; }
+#test-center { padding: 50px; }
+
+#welcome  { margin: 0; height: 100%; width: 100%; position: fixed; background-color: white; }
+#welcome  .wrapper { margin: 0 auto; width: 750px; margin: 0 auto; position: relative; }
+#welcome .top { position: absolute; top:48px; height: 480px; }
+#welcome .left { width: 300px; border-right: 2px dashed black; left:0; }
+#welcome .left table { margin: 0 auto; border-spacing: 0; border: 3px solid #000; position: relative; top: 12px; }
+#welcome .left table td { font-family: SimHei, Arial, Helvetica, sans-serif; text-align: center; width: 240px; }
+#welcome .left table thead { font-size: 72px; background-color: #FFF; color: #000; }
+#welcome .left table tbody { font-size: 48px; background-color: #000; color: #FFF; }
+#welcome .left table .online {
+    position: absolute;
+    right: -8px; top: -5px;
+    display: block;
+    font-size: 14px;
+    background-color: #3D7;
+    width: 40px;
+    height:18px;
+    line-height: 18px;
+    border-radius: 5px;
+    color: #FFF;
+}
+
+#welcome .left table .version {
+    position: absolute;
+    right: 0px; bottom: 0px;
+    display: block;
+    font-size: 10px;
+    text-align: right;
+    padding: 3px;
+    width: 40px;
+    color: #FFF;
+}
+
+#welcome .left .start {
+    color: #FFF;
+    height: 40px;
+    line-height: 40px;
+    width: 200px;
+    background-color: #3D7;
+    margin: 80px auto;
+    display: block;
+    box-shadow: 0 0 20px rgba(79, 209, 143, 0.6);
+    transition: all 0.5s;
+}
+
+#welcome .left .start:hover {
+    background-color: #2C6;
+    box-shadow: 0 0 20px rgba(79, 209, 143, 0.9);
+}
+
+#welcome .button {
+    text-align: center;
+    font-family: SimHei, Arial, Helvetica, sans-serif;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+#welcome .right { width: 420px; right:0; padding: 12px; }
+#welcome .right .disclaimer, #welcome .right .seo { font-size: 9px; color: #DDD; }
+
+#resolution_tips {
+    background-color: rgba(0, 0, 0, 0.75);
+    border-radius: 20px 20px 20px 20px;
+    color: #FFFFFF;
+    font-family: arial;
+    font-size: 48px;
+    height: 120px;
+    left: 50%;
+    line-height: 120px;
+    margin: -60px -150px;
+    position: absolute;
+    text-align: center;
+    top: 50%;
+    width: 300px;
+    z-index: 1;
+}
+
+</style>
+</head>
+<body id="body">
+<div style='margin:0 auto;width:0px;height:0px;overflow:hidden;'>
+    
+</div>
+<div id="container">
+	<ul id="main">
+		<li data-title="欢迎页" data-desc="" class="slide" id="welcome">
+			<div class="wrapper">
+				<div class="top left">
+					<table>
+						<thead><tr><td>屏幕</td></tr></thead>
+						<tbody><tr><td>测试机</td></tr></tbody>
+						<tfoot>
+							<tr><td class="online">在线</td></tr>
+						</tfoot>
+					</table>
+					<a class="button start" id="start">立即开始</a>
+                    <a class="button start" id="fps" href="https://www.testufo.com/">屏幕刷新率测试</a>
+				</div>
+				<div class="top right">
+					<div class="technical">
+                        <h1>在线屏幕测试</h1>
+						<p>想知道屏幕是否有缺陷？在线给显示器做个体检吧！本站提供的检查项目包括：纯色、漏光测试、干扰测试、对焦、呼吸效应、对比度、色阶、饱和度。通过本站可以全面的测试显示器的质量和水平。</p>
+						<p><span class="title">当前分辨率：</span><span class="value" id="resolution"></span></p>
+						<p><span class="title">内容分辨率：</span><span class="value" id="bodysize"></span></p>
+						<p>分辨率信息仅供参考，一些浏览器在缩放后无法提供正确的分辨率值。</p>
+						<p>如果不能自动全屏，请手工将浏览器全屏(快捷键F11)。</p>
+						<p class="disclaimer">本测试工具通常不会对您的显示设备有任何伤害，且不能代替专业的检测器械。通常显示设备中有高压，非专业人士请不要自行维修您的显示设备。本工具的测试结果仅供参考，对本站的任何内容以及产生的结果不承担任何保证或责任。</p>
+                        <p class="seo">本站专注于<strong>屏幕测试</strong>、<strong>屏幕检测</strong>、<strong>显示器检测</strong>、<strong>显示器测试</strong>、<strong>在线屏幕测试</strong>、<strong>在线屏幕检测</strong>、<strong>屏幕测试软件</strong>、<strong>显示器检测软件</strong>、<strong>漏光检测</strong>、<strong>屏幕检测工具</strong>、<strong>显示器检测</strong>、<strong>屏幕坏点检测工具</strong>、<strong>显示器的测试工具</strong>等服务，且不能代替专业的检测器械。通常显示设备中有高压，非专业人士请不要自行维修您的显示设备。本工具的测试结果仅供参考，对本站的任何内容以及产生的结果不承担任何保证或责任。</p>
+					</div>
+                    <div id="preloader"></div>
+				</div>
+			</div>
+		</li>
+		<li data-title="纯红色" data-desc="通常LCD显示器偶尔会有暗点(永远保持黑色)，请检查每个像素。注意屏幕上的灰尘有可能会被误认为坏点。" class="slide hide test" id="test-solid-red"></li>
+		<li data-title="纯绿色" data-desc="通常LCD显示器偶尔会有暗点(永远保持黑色)，请检查每个像素。注意屏幕上的灰尘有可能会被误认为坏点。" class="slide hide test" id="test-solid-green"></li>
+		<li data-title="纯蓝色" data-desc="通常LCD显示器偶尔会有暗点(永远保持黑色)，请检查每个像素。注意屏幕上的灰尘有可能会被误认为坏点。" class="slide hide test" id="test-solid-blue"></li>
+		<li data-title="纯黄色" data-desc="通常LCD显示器偶尔会有坏点(永远保持某一颜色)，请检查每个像素。" class="slide hide test" id="test-solid-yellow"></li>
+		<li data-title="纯青色" data-desc="通常LCD显示器偶尔会有坏点(永远保持某一颜色)，请检查每个像素。" class="slide hide test" id="test-solid-cyan"></li>
+		<li data-title="纯洋红色" data-desc="通常LCD显示器偶尔会有坏点(永远保持某一颜色)，请检查每个像素。" class="slide hide test" id="test-solid-magenta"></li>
+		<li data-title="纯白色" data-desc="除了用于测试坏点外，纯白屏通常用于测试显示器的亮度是否均衡，以及是否有不明显的色块存在。" class="slide hide test" id="test-solid-white"></li>
+        <li data-title="纯黑色" data-desc="除了用于测试坏点外，纯黑屏还常用于漏光测试水平。" class="slide hide test" id="test-solid-black"></li>
+		<li data-title="水平线1" data-desc="主要测试模拟信号的干扰水平，画面稳定的显示设备更佳。" class="slide hide test" id="test-horizontal-line-1px"></li>
+		<li data-title="水平线2" data-desc="主要测试模拟信号的干扰水平，画面稳定的显示设备更佳。" class="slide hide test" id="test-horizontal-line-2px"></li>
+		<li data-title="垂直线1" data-desc="主要测试模拟信号的干扰水平，画面稳定的显示设备更佳。" class="slide hide test" id="test-vertical-line-1px"></li>
+		<li data-title="垂直线2" data-desc="主要测试模拟信号的干扰水平，画面稳定的显示设备更佳。" class="slide hide test" id="test-vertical-line-2px"></li>
+		<li data-title="正斜线1" data-desc="主要测试模拟信号的干扰水平，画面稳定的显示设备更佳。" class="slide hide test" id="test-cross-1px"></li>
+		<li data-title="正斜线2" data-desc="主要测试模拟信号的干扰水平，画面稳定的显示设备更佳。" class="slide hide test" id="test-cross-2px"></li>
+		<li data-title="点阵" data-desc="主要测试模拟信号的干扰水平，画面稳定的显示设备更佳。" class="slide hide test" id="test-dots-1px"></li>
+		<!--li data-title="点2" data-desc="主要测试模拟信号的干扰水平，画面稳定的显示设备更佳。" class="slide hide test" id="test-dots-2px"></li-->
+		<li data-title="微型图案" data-desc="通常用于测试CRT显示器以及投影仪的对焦水平，请检查每个图案是否都清晰可见。" class="slide hide test" id="test-pattern"></li>
+		<li data-title="闪烁方块" data-desc="通常用于测试CRT显示器的呼吸效应程度，边缘线条稳定的显示设备更佳。" class="slide hide test" id="test-stability"><table><tr><td></td></tr></table></li>
+		<li data-title="方形网格" data-desc="请通过显示器的OSD设置菜单，使得线条横平竖直。" class="slide hide test" id="test-white-grid"><div></div></li>
+		<li data-title="彩色网格" data-desc="请检查线条是否有相同的宽度，以及线条是否平整。尤其是屏幕的边缘。" class="slide hide test" id="test-convergence"></li>
+		<li data-title="对比度(暗)" data-desc="用于测试屏幕的对比度，一般的非专业显示器无法区分最后一行的色块边缘。" class="slide hide test test-contrast" id="test-contrast-white">
+			<table><tbody>
+				<tr class="ruler">
+					<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+				</tr>
+				<tr class="color">
+					<td style="background-color: #AFAFAF">68.63%<br /><i>(175/255)</i></td>
+					<td style="background-color: #B7B7B7">71.76%<br /><i>(183/255)</i></td>
+					<td style="background-color: #BFBFBF">74.90%<br /><i>(191/255)</i></td>
+					<td style="background-color: #C7C7C7">78.04%<br /><i>(199/255)</i></td>
+					<td style="background-color: #CFCFCF">81.18%<br /><i>(207/255)</i></td>
+					<td style="background-color: #D7D7D7">84.31%<br /><i>(215/255)</i></td>
+					<td style="background-color: #DFDFDF">87.45%<br /><i>(223/255)</i></td>
+					<td style="background-color: #E7E7E7">90.59%<br /><i>(231/255)</i></td>
+					<td style="background-color: #EFEFEF">93.73%<br /><i>(239/255)</i></td>
+					<td style="background-color: #F7F7F7">96.86%<br /><i>(247/255)</i></td>
+				</tr>
+				<tr class="ruler">
+					<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+				</tr>
+				<tr class="color">
+					<td style="background-color: #D7D7D7">84.31%<br /><i>(215/255)</i></td>
+					<td style="background-color: #DBDBDB">85.88%<br /><i>(219/255)</i></td>
+					<td style="background-color: #DFDFDF">87.45%<br /><i>(223/255)</i></td>
+					<td style="background-color: #E3E3E3">89.02%<br /><i>(227/255)</i></td>
+					<td style="background-color: #E7E7E7">90.59%<br /><i>(231/255)</i></td>
+					<td style="background-color: #EBEBEB">92.16%<br /><i>(235/255)</i></td>
+					<td style="background-color: #EFEFEF">93.73%<br /><i>(239/255)</i></td>
+					<td style="background-color: #F3F3F3">95.29%<br /><i>(243/255)</i></td>
+					<td style="background-color: #F7F7F7">96.86%<br /><i>(247/255)</i></td>
+					<td style="background-color: #FBFBFB">98.43%<br /><i>(251/255)</i></td>
+				</tr>
+				<tr class="ruler">
+					<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+				</tr>
+				<tr class="color">
+					<td style="background-color: #EBEBEB">92.16%<br /><i>(235/255)</i></td>
+					<td style="background-color: #EDEDED">92.94%<br /><i>(237/255)</i></td>
+					<td style="background-color: #EFEFEF">93.73%<br /><i>(239/255)</i></td>
+					<td style="background-color: #F1F1F1">94.51%<br /><i>(241/255)</i></td>
+					<td style="background-color: #F3F3F3">95.29%<br /><i>(243/255)</i></td>
+					<td style="background-color: #F5F5F5">96.08%<br /><i>(245/255)</i></td>
+					<td style="background-color: #F7F7F7">96.86%<br /><i>(247/255)</i></td>
+					<td style="background-color: #F9F9F9">97.65%<br /><i>(249/255)</i></td>
+					<td style="background-color: #FBFBFB">98.43%<br /><i>(251/255)</i></td>
+					<td style="background-color: #FDFDFD">99.22%<br /><i>(253/255)</i></td>
+				</tr>
+				<tr class="ruler">
+					<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+				</tr>
+				<tr class="color">
+					<td style="background-color: #F5F5F5">96.08%<br /><i>(245/255)</i></td>
+					<td style="background-color: #F6F6F6">96.47%<br /><i>(246/255)</i></td>
+					<td style="background-color: #F7F7F7">96.86%<br /><i>(247/255)</i></td>
+					<td style="background-color: #F8F8F8">97.25%<br /><i>(248/255)</i></td>
+					<td style="background-color: #F9F9F9">97.65%<br /><i>(249/255)</i></td>
+					<td style="background-color: #FAFAFA">98.04%<br /><i>(250/255)</i></td>
+					<td style="background-color: #FBFBFB">98.43%<br /><i>(251/255)</i></td>
+					<td style="background-color: #FCFCFC">98.82%<br /><i>(252/255)</i></td>
+					<td style="background-color: #FDFDFD">99.22%<br /><i>(253/255)</i></td>
+					<td style="background-color: #FEFEFE">99.61%<br /><i>(254/255)</i></td>
+				</tr>
+				<tr class="ruler">
+					<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+				</tr>
+			</tbody></table>
+		</li>
+		<li data-title="对比度(亮)" data-desc="用于测试屏幕的对比度，一般的非专业显示器无法区分第一行的色块边缘。" class="slide hide test test-contrast" id="test-contrast-black">
+			<table><tbody>
+				<tr class="ruler">
+					<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+				</tr>
+				<tr class="color">
+					<td style="background-color: #010101">0.39%<br /><i>(1/255)</i></td>
+					<td style="background-color: #020202">0.78%<br /><i>(2/255)</i></td>
+					<td style="background-color: #030303">1.18%<br /><i>(3/255)</i></td>
+					<td style="background-color: #040404">1.57%<br /><i>(4/255)</i></td>
+					<td style="background-color: #050505">1.96%<br /><i>(5/255)</i></td>
+					<td style="background-color: #060606">2.35%<br /><i>(6/255)</i></td>
+					<td style="background-color: #070707">2.75%<br /><i>(7/255)</i></td>
+					<td style="background-color: #080808">3.14%<br /><i>(8/255)</i></td>
+					<td style="background-color: #090909">3.53%<br /><i>(9/255)</i></td>
+					<td style="background-color: #0A0A0A">3.92%<br /><i>(10/255)</i></td>
+				</tr>
+				<tr class="ruler">
+					<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+				</tr>
+				<tr class="color">
+					<td style="background-color: #020202">0.78%<br /><i>(2/255)</i></td>
+					<td style="background-color: #040404">1.57%<br /><i>(4/255)</i></td>
+					<td style="background-color: #060606">2.35%<br /><i>(6/255)</i></td>
+					<td style="background-color: #080808">3.14%<br /><i>(8/255)</i></td>
+					<td style="background-color: #0A0A0A">3.92%<br /><i>(10/255)</i></td>
+					<td style="background-color: #0C0C0C">4.71%<br /><i>(12/255)</i></td>
+					<td style="background-color: #0E0E0E">5.49%<br /><i>(14/255)</i></td>
+					<td style="background-color: #101010">6.27%<br /><i>(16/255)</i></td>
+					<td style="background-color: #121212">7.06%<br /><i>(18/255)</i></td>
+					<td style="background-color: #141414">7.84%<br /><i>(20/255)</i></td>
+				</tr>
+				<tr class="ruler">
+					<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+				</tr>
+				<tr class="color">
+					<td style="background-color: #040404">1.57%<br /><i>(4/255)</i></td>
+					<td style="background-color: #080808">3.14%<br /><i>(8/255)</i></td>
+					<td style="background-color: #0C0C0C">4.71%<br /><i>(12/255)</i></td>
+					<td style="background-color: #101010">6.27%<br /><i>(16/255)</i></td>
+					<td style="background-color: #141414">7.84%<br /><i>(20/255)</i></td>
+					<td style="background-color: #181818">9.41%<br /><i>(24/255)</i></td>
+					<td style="background-color: #1C1C1C">10.98%<br /><i>(28/255)</i></td>
+					<td style="background-color: #202020">12.55%<br /><i>(32/255)</i></td>
+					<td style="background-color: #242424">14.12%<br /><i>(36/255)</i></td>
+					<td style="background-color: #282828">15.69%<br /><i>(40/255)</i></td>
+				</tr>
+				<tr class="ruler">
+					<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+				</tr>
+				<tr class="color">
+					<td style="background-color: #080808">3.14%<br /><i>(8/255)</i></td>
+					<td style="background-color: #101010">6.27%<br /><i>(16/255)</i></td>
+					<td style="background-color: #181818">9.41%<br /><i>(24/255)</i></td>
+					<td style="background-color: #202020">12.55%<br /><i>(32/255)</i></td>
+					<td style="background-color: #282828">15.69%<br /><i>(40/255)</i></td>
+					<td style="background-color: #303030">18.82%<br /><i>(48/255)</i></td>
+					<td style="background-color: #383838">21.96%<br /><i>(56/255)</i></td>
+					<td style="background-color: #404040">25.10%<br /><i>(64/255)</i></td>
+					<td style="background-color: #484848">28.24%<br /><i>(72/255)</i></td>
+					<td style="background-color: #505050">31.37%<br /><i>(80/255)</i></td>
+				</tr>
+				<tr class="ruler">
+					<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+				</tr>
+			</tbody></table>
+		</li>
+		<li data-title="白色渐变" data-desc="用于测试显示器的色彩平滑程度，颜色过渡平滑的显示设备更佳。" class="slide hide test test-gradient" id="test-gradient-white"><img src="img/grey-gradient.png" /></li>
+		<li data-title="红色渐变" data-desc="用于测试显示器的色彩平滑程度，颜色过渡平滑的显示设备更佳。" class="slide hide test test-gradient" id="test-gradient-red"><img src="img/grey-gradient.png" /></li>
+		<li data-title="绿色渐变" data-desc="用于测试显示器的色彩平滑程度，颜色过渡平滑的显示设备更佳。" class="slide hide test test-gradient" id="test-gradient-green"><img src="img/grey-gradient.png" /></li>
+		<li data-title="蓝色渐变" data-desc="用于测试显示器的色彩平滑程度，颜色过渡平滑的显示设备更佳。" class="slide hide test test-gradient" id="test-gradient-blue"><img src="img/grey-gradient.png" /></li>
+		<li data-title="饱和度" data-desc="用于测试屏幕的色彩饱和度，颜色过渡平滑的显示设备更佳。" class="slide hide test" id="test-saturation"><img src="img/saturation.png" /></li>
+		<li data-title="测试结束" data-desc="感谢您使用本工具" class="slide hide" id="test-last">测试结束</li>
+	</ul>
+	<div id="control" class="control_hide">
+		<div class="panel top">
+			<span class="title"></span>
+			<span class="description"></span>
+			<span class="close" id="stop"></span>
+		</div>
+		<div class="panel bottom">
+			<div class="wrapper" id="control_buttons"></div>
+			<div class="triangle"></div>
+		</div>
+	</div>
+	<div id="resolution_tips" style="display: none;"></div>
+</div>
+</body>
+</html>
